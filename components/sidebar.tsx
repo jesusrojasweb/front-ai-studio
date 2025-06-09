@@ -17,21 +17,69 @@ import {
   MoreHorizontal,
   Globe,
   Shield,
-  Flag
+  Flag,
+  User
 } from 'lucide-react'
+import { useUser } from '@/lib/hooks/useUser'
+
+// Function to generate user initials from display name
+const generateInitials = (displayName: string): string => {
+  if (!displayName.trim()) return 'U' // Default to 'U' for User if no name
+
+  const nameParts = displayName
+    .trim()
+    .split(' ')
+    .filter((part) => part.length > 0)
+
+  if (nameParts.length === 0) return 'U'
+  if (nameParts.length === 1) {
+    // Single name - use first two characters
+    return nameParts[0].substring(0, 2).toUpperCase()
+  }
+  if (nameParts.length === 2) {
+    // Two names - use first letter of each
+    return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase()
+  }
+
+  // More than two names - use first letter of first and last name
+  return (
+    nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)
+  ).toUpperCase()
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { user, displayName, loading, logout } = useUser()
+
+  // Generate initials from display name
+  const userInitials = generateInitials(displayName || '')
+  const userName = displayName || 'Loading...'
+
+  // Handle logout
+  const handleLogout = () => {
+    logout()
+  }
 
   return (
     <div className="w-60 bg-[#121212] border-r border-gray-800 flex flex-col h-full">
       <div className="p-4 flex items-center gap-3">
         <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center font-bold">
-          JR
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+          ) : user ? (
+            userInitials
+          ) : (
+            <User size={20} />
+          )}
         </div>
         <div>
-          <div className="font-bold">Jesus Rojas</div>
-          <div className="text-gray-400 text-sm">@jesusrj</div>
+          <div className="font-bold">
+            {loading ? (
+              <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
+            ) : (
+              userName
+            )}
+          </div>
         </div>
         <div className="ml-auto bg-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs">
           ?
@@ -143,7 +191,10 @@ export default function Sidebar() {
             <Star size={20} />
             <span>What&apos;s new</span>
           </li>
-          <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
+          <li
+            className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer"
+            onClick={handleLogout}
+          >
             <LogOut size={20} />
             <span>Log out</span>
           </li>

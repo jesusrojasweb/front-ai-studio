@@ -7,6 +7,12 @@ import { authStorage, type UserData } from './auth-storage.service'
 // Re-export UserData for external use
 export type { UserData }
 
+// Function to get user ID from stored session
+export const getUserIdFromToken = (): string | null => {
+  const userData = authStorage.getCurrentUser()
+  return userData?.id || null
+}
+
 // Request/Response types based on the API documentation
 export interface LoginRequest {
   email: string

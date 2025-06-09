@@ -1,25 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, AlertCircle } from 'lucide-react'
 import Dashboard from '@/components/dashboard'
-import { authService, type UserData } from '@/lib/services/auth.service'
+import { useUser } from '@/lib/hooks/useUser'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [currentUser, setCurrentUser] = useState<UserData | null>(null)
-  const router = useRouter()
+  const {
+    user,
+    loading,
+    error,
+    displayName,
+    fetchUserData,
+    logout,
+    shouldFetchUserData,
+    clearError
+  } = useUser()
 
   useEffect(() => {
-    // Get current user data
-    const user = authService.getCurrentUser()
-    setCurrentUser(user)
-  }, [])
+    // If we should fetch user data, do it
+    if (shouldFetchUserData()) {
+      console.log('🔄 Home page detected need to fetch user data')
+      fetchUserData().catch((error) => {
+        console.error('Failed to fetch user data on home page:', error)
+      })
+    }
+  }, [shouldFetchUserData, fetchUserData])
 
   const handleLogout = () => {
-    authService.logout()
-    router.push('/login')
+    logout()
   }
 
   return (
@@ -28,10 +38,28 @@ export default function Home() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-bold">HOME</h1>
           <div className="flex items-center gap-4">
-            {currentUser && (
+            {user && (
               <div className="flex items-center gap-2 text-sm text-gray-300">
                 <User size={16} />
-                <span>Welcome, {currentUser.displayName}</span>
+                <span>Welcome, {displayName}</span>
+              </div>
+            )}
+            {loading && (
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                <span>Loading profile...</span>
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-red-400">
+                <AlertCircle size={16} />
+                <span>Failed to load profile</span>
+                <button
+                  onClick={clearError}
+                  className="text-xs underline hover:no-underline"
+                >
+                  Dismiss
+                </button>
               </div>
             )}
             <button

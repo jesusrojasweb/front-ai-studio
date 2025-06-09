@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Sidebar from '@/components/sidebar'
 import { authService } from '@/lib/services/auth.service'
+import { useUser } from '@/lib/hooks/useUser'
 
 interface LayoutProviderProps {
   children: React.ReactNode
@@ -13,14 +14,18 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const { initializeUserState, shouldFetchUserData, fetchUserData } = useUser()
 
   // Define routes that don't require authentication
   const publicRoutes = ['/login', '/register']
   const isPublicRoute = publicRoutes.includes(pathname)
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = () => {
+    // Initialize user state and check authentication
+    const checkAuth = async () => {
+      // Initialize user state from localStorage
+      await initializeUserState()
+
       const authenticated = authService.isAuthenticated()
 
       // Handle route protection
@@ -42,11 +47,31 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
         return
       }
 
+      // If authenticated and no user data, fetch it
+      if (authenticated && shouldFetchUserData()) {
+        try {
+          console.log('🔄 Fetching user data during layout initialization...')
+          await fetchUserData()
+        } catch (error) {
+          console.warn(
+            'Failed to fetch user data during layout initialization:',
+            error
+          )
+        }
+      }
+
       setIsLoading(false)
     }
 
     checkAuth()
-  }, [pathname, isPublicRoute, router])
+  }, [
+    pathname,
+    isPublicRoute,
+    router,
+    initializeUserState,
+    shouldFetchUserData,
+    fetchUserData
+  ])
 
   // Show loading spinner while checking authentication
   if (isLoading) {
