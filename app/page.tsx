@@ -1,10 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LogOut, User } from 'lucide-react'
 import Dashboard from '@/components/dashboard'
+import { authService, type UserData } from '@/lib/services/auth.service'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Get current user data
+    const user = authService.getCurrentUser()
+    setCurrentUser(user)
+  }, [])
+
+  const handleLogout = () => {
+    authService.logout()
+    router.push('/login')
+  }
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
@@ -12,8 +28,18 @@ export default function Home() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-bold">HOME</h1>
           <div className="flex items-center gap-4">
-            <button className="bg-green-500 text-black rounded-full px-4 py-1.5 flex items-center">
-              <span className="mr-1">$</span> Refer & Earn
+            {currentUser && (
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <User size={16} />
+                <span>Welcome, {currentUser.displayName}</span>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-md transition-colors"
+            >
+              <LogOut size={16} />
+              Logout
             </button>
             <button className="text-white">
               <svg
