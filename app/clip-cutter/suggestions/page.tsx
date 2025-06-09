@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Play,
   Pause,
@@ -13,8 +13,8 @@ import {
   HelpCircle,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-} from "lucide-react"
+  AlertTriangle
+} from 'lucide-react'
 
 interface ClipSuggestion {
   id: string
@@ -30,55 +30,57 @@ interface ClipSuggestion {
 export default function ClipSuggestions() {
   const [suggestions] = useState<ClipSuggestion[]>([
     {
-      id: "1",
+      id: '1',
       startTime: 5,
       endTime: 45,
       duration: 40,
       score: 0.89,
-      thumbnail: "/placeholder.svg?height=180&width=320",
-      label: "Scene change at 00:32",
-      reasoning: "High movement activity and natural transition point detected",
+      thumbnail: '/placeholder.svg?height=180&width=320',
+      label: 'Scene change at 00:32',
+      reasoning: 'High movement activity and natural transition point detected'
     },
     {
-      id: "2",
+      id: '2',
       startTime: 12,
       endTime: 58,
       duration: 46,
       score: 0.83,
-      thumbnail: "/placeholder.svg?height=180&width=320",
-      label: "Audio peak sequence",
-      reasoning: "Strong audio engagement with clear speech patterns",
+      thumbnail: '/placeholder.svg?height=180&width=320',
+      label: 'Audio peak sequence',
+      reasoning: 'Strong audio engagement with clear speech patterns'
     },
     {
-      id: "3",
+      id: '3',
       startTime: 25,
       endTime: 60,
       duration: 35,
       score: 0.76,
-      thumbnail: "/placeholder.svg?height=180&width=320",
-      label: "Action highlight",
-      reasoning: "Peak visual activity with good lighting conditions",
+      thumbnail: '/placeholder.svg?height=180&width=320',
+      label: 'Action highlight',
+      reasoning: 'Peak visual activity with good lighting conditions'
     },
     {
-      id: "4",
+      id: '4',
       startTime: 2,
       endTime: 42,
       duration: 40,
       score: 0.72,
-      thumbnail: "/placeholder.svg?height=180&width=320",
-      label: "Opening sequence",
-      reasoning: "Strong opening with consistent framing",
-    },
+      thumbnail: '/placeholder.svg?height=180&width=320',
+      label: 'Opening sequence',
+      reasoning: 'Strong opening with consistent framing'
+    }
   ])
 
-  const [selectedClip, setSelectedClip] = useState<ClipSuggestion>(suggestions[0])
+  const [selectedClip, setSelectedClip] = useState<ClipSuggestion>(
+    suggestions[0]
+  )
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [regenerateCount, setRegenerateCount] = useState(2)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [showRationale, setShowRationale] = useState(false)
   const [showToast, setShowToast] = useState<{
-    type: "info" | "warning" | "error"
+    type: 'info' | 'warning' | 'error'
     message: string
   } | null>(null)
 
@@ -111,8 +113,8 @@ export default function ClipSuggestions() {
     const newTime = Number.parseFloat(e.target.value)
     if (newTime > 60) {
       setShowToast({
-        type: "warning",
-        message: "Clips are limited to 60 seconds",
+        type: 'warning',
+        message: 'Clips are limited to 60 seconds'
       })
       setTimeout(() => setShowToast(null), 3000)
       return
@@ -125,7 +127,7 @@ export default function ClipSuggestions() {
     setCurrentTime(0)
     setIsPlaying(false)
     // Smooth scroll to top
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
   const handleRegenerate = useCallback(() => {
@@ -138,8 +140,8 @@ export default function ClipSuggestions() {
     setTimeout(() => {
       setIsRegenerating(false)
       setShowToast({
-        type: "info",
-        message: "New suggestions generated",
+        type: 'info',
+        message: 'New suggestions generated'
       })
       setTimeout(() => setShowToast(null), 3000)
     }, 2000)
@@ -147,36 +149,40 @@ export default function ClipSuggestions() {
 
   const handleNext = useCallback(() => {
     // Pass selected clip data to next step
-    router.push("/clip-cutter/fine-tune")
+    router.push('/clip-cutter/fine-tune')
   }, [router])
 
   const handleBack = useCallback(() => {
-    router.push("/clip-cutter")
+    router.push('/clip-cutter')
   }, [router])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    return `${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}`
   }
 
   const getScoreBadge = (score: number) => {
     if (score >= 0.8) {
-      return { color: "bg-green-900/30 text-green-400", label: "Great" }
+      return { color: 'bg-green-900/30 text-green-400', label: 'Great' }
     } else if (score >= 0.7) {
-      return { color: "bg-yellow-900/30 text-yellow-400", label: "Good" }
+      return { color: 'bg-yellow-900/30 text-yellow-400', label: 'Good' }
     } else {
-      return { color: "bg-gray-900/30 text-gray-400", label: "Fair" }
+      return { color: 'bg-gray-900/30 text-gray-400', label: 'Fair' }
     }
   }
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-full bg-black text-white">
       {/* Header */}
       <header className="h-16 border-b border-gray-800 px-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">2 / 4 · Choose your clip</h1>
-          <p className="text-sm text-gray-400">Pick the best ≤ 60 s highlight</p>
+          <p className="text-sm text-gray-400">
+            Pick the best ≤ 60 s highlight
+          </p>
         </div>
       </header>
 
@@ -188,7 +194,10 @@ export default function ClipSuggestions() {
           <div className="h-[40%] bg-[#1A1A1A] border-b border-gray-800 p-6 flex flex-col justify-center">
             <div className="max-w-4xl mx-auto w-full">
               {/* Hero player */}
-              <div className="relative bg-black rounded-lg overflow-hidden mb-4" style={{ aspectRatio: "16/9" }}>
+              <div
+                className="relative bg-black rounded-lg overflow-hidden mb-4"
+                style={{ aspectRatio: '16/9' }}
+              >
                 <video
                   ref={videoRef}
                   className="w-full h-full object-cover"
@@ -204,15 +213,20 @@ export default function ClipSuggestions() {
                   <button
                     onClick={handlePlayPause}
                     className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    aria-label={isPlaying ? "Pause video" : "Play video"}
+                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
                   >
-                    {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+                    {isPlaying ? (
+                      <Pause size={24} />
+                    ) : (
+                      <Play size={24} className="ml-1" />
+                    )}
                   </button>
                 </div>
 
                 {/* Time overlay */}
                 <div className="absolute top-4 right-4 bg-black/70 px-2 py-1 rounded text-sm">
-                  {formatTime(selectedClip.startTime + currentTime)} - {formatTime(selectedClip.endTime)}
+                  {formatTime(selectedClip.startTime + currentTime)} -{' '}
+                  {formatTime(selectedClip.endTime)}
                 </div>
               </div>
 
@@ -243,7 +257,10 @@ export default function ClipSuggestions() {
                   className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label={`Regenerate suggestions (${regenerateCount} remaining)`}
                 >
-                  <RotateCcw size={16} className={isRegenerating ? "animate-spin" : ""} />
+                  <RotateCcw
+                    size={16}
+                    className={isRegenerating ? 'animate-spin' : ''}
+                  />
                   <span>Regenerate ({regenerateCount} left)</span>
                 </button>
               </div>
@@ -281,12 +298,12 @@ export default function ClipSuggestions() {
                           tabIndex={0}
                           className={`relative cursor-pointer rounded-lg overflow-hidden transition-all hover:scale-105 ${
                             isSelected
-                              ? "ring-2 ring-green-400 shadow-lg shadow-green-400/20"
-                              : "hover:ring-1 hover:ring-green-400/50"
+                              ? 'ring-2 ring-green-400 shadow-lg shadow-green-400/20'
+                              : 'hover:ring-1 hover:ring-green-400/50'
                           }`}
                           onClick={() => handleClipSelect(clip)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                            if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault()
                               handleClipSelect(clip)
                             }
@@ -296,14 +313,15 @@ export default function ClipSuggestions() {
                           {/* Thumbnail */}
                           <div className="relative aspect-video bg-gray-800">
                             <img
-                              src={clip.thumbnail || "/placeholder.svg"}
+                              src={clip.thumbnail || '/placeholder.svg'}
                               alt={`Clip suggestion: ${clip.label}`}
                               className="w-full h-full object-cover"
                             />
 
                             {/* Time overlay */}
                             <div className="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs">
-                              {formatTime(clip.startTime)}–{formatTime(clip.endTime)}
+                              {formatTime(clip.startTime)}–
+                              {formatTime(clip.endTime)}
                             </div>
 
                             {/* Duration chip */}
@@ -323,7 +341,10 @@ export default function ClipSuggestions() {
                             {isSelected && (
                               <div className="absolute inset-0 bg-green-400/10 flex items-center justify-center">
                                 <div className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center">
-                                  <Play size={16} className="text-black ml-0.5" />
+                                  <Play
+                                    size={16}
+                                    className="text-black ml-0.5"
+                                  />
                                 </div>
                               </div>
                             )}
@@ -331,8 +352,12 @@ export default function ClipSuggestions() {
 
                           {/* Label */}
                           <div className="p-3">
-                            <p className="font-medium text-sm mb-1">{clip.label}</p>
-                            <div className={`inline-flex items-center px-2 py-1 rounded text-xs ${scoreBadge.color}`}>
+                            <p className="font-medium text-sm mb-1">
+                              {clip.label}
+                            </p>
+                            <div
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${scoreBadge.color}`}
+                            >
                               {scoreBadge.label}
                             </div>
                           </div>
@@ -346,9 +371,11 @@ export default function ClipSuggestions() {
               {/* Need other options */}
               {regenerateCount <= 0 && (
                 <div className="mt-6 p-4 bg-gray-900/50 rounded-lg">
-                  <p className="text-sm text-gray-400 mb-2">Not satisfied with the suggestions?</p>
+                  <p className="text-sm text-gray-400 mb-2">
+                    Not satisfied with the suggestions?
+                  </p>
                   <button
-                    onClick={() => router.push("/clip-cutter/fine-tune")}
+                    onClick={() => router.push('/clip-cutter/fine-tune')}
                     className="text-green-400 hover:underline text-sm"
                   >
                     Manual trim instead →
@@ -370,12 +397,18 @@ export default function ClipSuggestions() {
                 <HelpCircle size={16} className="text-green-400" />
                 <span className="font-medium">Why these clips?</span>
               </div>
-              {showRationale ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {showRationale ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
             </button>
 
             {showRationale && (
               <div className="px-4 pb-4 space-y-3">
-                <p className="text-sm text-gray-400 mb-3">Our AI analyzes your video for optimal clip points using:</p>
+                <p className="text-sm text-gray-400 mb-3">
+                  Our AI analyzes your video for optimal clip points using:
+                </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
@@ -397,7 +430,9 @@ export default function ClipSuggestions() {
 
                 {selectedClip && (
                   <div className="mt-4 p-3 bg-gray-800/50 rounded">
-                    <p className="text-xs text-gray-400 mb-1">Selected clip reasoning:</p>
+                    <p className="text-xs text-gray-400 mb-1">
+                      Selected clip reasoning:
+                    </p>
                     <p className="text-sm">{selectedClip.reasoning}</p>
                   </div>
                 )}
@@ -431,14 +466,16 @@ export default function ClipSuggestions() {
       {showToast && (
         <div
           className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-lg flex items-center gap-3 max-w-md animate-fade-in ${
-            showToast.type === "info"
-              ? "bg-blue-900/80 text-white"
-              : showToast.type === "warning"
-                ? "bg-yellow-900/80 text-white"
-                : "bg-red-900/80 text-white"
+            showToast.type === 'info'
+              ? 'bg-blue-900/80 text-white'
+              : showToast.type === 'warning'
+              ? 'bg-yellow-900/80 text-white'
+              : 'bg-red-900/80 text-white'
           }`}
         >
-          {showToast.type === "warning" && <AlertTriangle size={20} className="text-yellow-400" />}
+          {showToast.type === 'warning' && (
+            <AlertTriangle size={20} className="text-yellow-400" />
+          )}
           <div className="flex-1">{showToast.message}</div>
           <button
             onClick={() => setShowToast(null)}

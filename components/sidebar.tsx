@@ -1,5 +1,7 @@
-"use client"
+'use client'
 
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   Home,
   Search,
@@ -15,32 +17,47 @@ import {
   MoreHorizontal,
   Globe,
   Shield,
-  Flag,
-} from "lucide-react"
+  Flag
+} from 'lucide-react'
 
 interface SidebarProps {
   onCreatorToolsClick: () => void
 }
 
 export default function Sidebar({ onCreatorToolsClick }: SidebarProps) {
+  const pathname = usePathname()
+
   return (
     <div className="w-60 bg-[#121212] border-r border-gray-800 flex flex-col h-full">
       <div className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center font-bold">JR</div>
+        <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center font-bold">
+          JR
+        </div>
         <div>
           <div className="font-bold">Jesus Rojas</div>
           <div className="text-gray-400 text-sm">@jesusrj</div>
         </div>
-        <div className="ml-auto bg-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs">?</div>
+        <div className="ml-auto bg-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs">
+          ?
+        </div>
       </div>
 
       <div className="px-4 py-2 text-sm text-gray-400">1 fan</div>
 
       <nav className="flex-1">
         <ul>
-          <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer bg-gray-800">
-            <Home size={20} />
-            <span>Home</span>
+          <li
+            className={`hover:bg-gray-800 ${
+              pathname === '/' ? 'bg-gray-800' : ''
+            }`}
+          >
+            <Link
+              href="/"
+              className="px-4 py-3 flex items-center gap-3 cursor-pointer"
+            >
+              <Home size={20} />
+              <span>Home</span>
+            </Link>
           </li>
           <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
             <Search size={20} />
@@ -77,27 +94,36 @@ export default function Sidebar({ onCreatorToolsClick }: SidebarProps) {
               </svg>
             </span>
           </li>
-          <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-scissors"
+          <li
+            className={`hover:bg-gray-800 ${
+              pathname.startsWith('/clip-cutter') ? 'bg-gray-800' : ''
+            }`}
+          >
+            <Link
+              href="/clip-cutter"
+              className="px-4 py-3 flex items-center gap-3 cursor-pointer"
             >
-              <circle cx="6" cy="6" r="3" />
-              <circle cx="18" cy="18" r="3" />
-              <path d="M8.12 8.12 18 18" />
-              <path d="M8.12 8.12 18 18" />
-              <path d="m6 14 8.12-8.12" />
-              <path d="m14 18-8.12-8.12" />
-            </svg>
-            <span>Clip Cutter</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-scissors"
+              >
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="18" cy="18" r="3" />
+                <path d="M8.12 8.12 18 18" />
+                <path d="M8.12 8.12 18 18" />
+                <path d="m6 14 8.12-8.12" />
+                <path d="m14 18-8.12-8.12" />
+              </svg>
+              <span>Clip Cutter</span>
+            </Link>
           </li>
           <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
             <DollarSign size={20} />
@@ -126,7 +152,7 @@ export default function Sidebar({ onCreatorToolsClick }: SidebarProps) {
           </li>
           <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
             <Star size={20} />
-            <span>What's new</span>
+            <span>What&apos;s new</span>
           </li>
           <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
             <LogOut size={20} />

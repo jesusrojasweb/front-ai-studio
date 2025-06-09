@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Play,
   Pause,
@@ -17,15 +17,15 @@ import {
   AlertTriangle,
   RefreshCw,
   Check,
-  Info,
-} from "lucide-react"
+  Info
+} from 'lucide-react'
 
 interface ClipState {
   startTime: number
   endTime: number
   originalStartTime: number
   originalEndTime: number
-  quality: "original" | "compressed"
+  quality: 'original' | 'compressed'
 }
 
 interface HistoryAction {
@@ -41,7 +41,7 @@ export default function FineTuneClip() {
     endTime: 45,
     originalStartTime: 5,
     originalEndTime: 45,
-    quality: "original",
+    quality: 'original'
   })
 
   // UI states
@@ -53,7 +53,7 @@ export default function FineTuneClip() {
   const [isDraggingEnd, setIsDraggingEnd] = useState(false)
   const [showQualityWarning, setShowQualityWarning] = useState(false)
   const [showToast, setShowToast] = useState<{
-    type: "info" | "warning" | "error" | "success"
+    type: 'info' | 'warning' | 'error' | 'success'
     message: string
   } | null>(null)
 
@@ -133,7 +133,9 @@ export default function FineTuneClip() {
       const rect = timelineRef.current.getBoundingClientRect()
       const clickPosition = (e.clientX - rect.left) / rect.width
       const totalVideoDuration = 60 // Assuming 60s total video duration
-      const clickTime = clipState.startTime + clickPosition * (clipState.endTime - clipState.startTime)
+      const clickTime =
+        clipState.startTime +
+        clickPosition * (clipState.endTime - clipState.startTime)
 
       // Clamp to valid range
       const newTime = Math.max(0, Math.min(clickTime, totalVideoDuration))
@@ -143,7 +145,7 @@ export default function FineTuneClip() {
         videoRef.current.currentTime = newTime
       }
     },
-    [clipState.startTime, clipState.endTime],
+    [clipState.startTime, clipState.endTime]
   )
 
   // Handle start handle drag
@@ -158,38 +160,41 @@ export default function FineTuneClip() {
         const rect = timelineRef.current.getBoundingClientRect()
         const position = (moveEvent.clientX - rect.left) / rect.width
         const totalVideoDuration = 60 // Assuming 60s total video duration
-        const newStartTime = Math.max(0, Math.min(position * totalVideoDuration, clipState.endTime - 1))
+        const newStartTime = Math.max(
+          0,
+          Math.min(position * totalVideoDuration, clipState.endTime - 1)
+        )
 
         // Snap to nearest 0.1s
         const snappedStartTime = Math.round(newStartTime * 10) / 10
 
         setClipState((prev) => ({
           ...prev,
-          startTime: snappedStartTime,
+          startTime: snappedStartTime
         }))
         setCurrentTime(snappedStartTime)
       }
 
       const handleMouseUp = () => {
         setIsDraggingStart(false)
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
 
         // Add to history if changed
         if (clipState.startTime !== clipState.originalStartTime) {
           addToHistory({
             startTime: clipState.startTime,
             endTime: clipState.endTime,
-            description: `Set start time to ${formatTime(clipState.startTime)}`,
+            description: `Set start time to ${formatTime(clipState.startTime)}`
           })
           triggerAutosave()
         }
       }
 
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
     },
-    [clipState.endTime, clipState.startTime, clipState.originalStartTime],
+    [clipState.endTime, clipState.startTime, clipState.originalStartTime]
   )
 
   // Handle end handle drag
@@ -206,7 +211,7 @@ export default function FineTuneClip() {
         const totalVideoDuration = 60 // Assuming 60s total video duration
         const newEndTime = Math.max(
           clipState.startTime + 1,
-          Math.min(position * totalVideoDuration, totalVideoDuration),
+          Math.min(position * totalVideoDuration, totalVideoDuration)
         )
 
         // Snap to nearest 0.1s
@@ -214,50 +219,53 @@ export default function FineTuneClip() {
 
         setClipState((prev) => ({
           ...prev,
-          endTime: snappedEndTime,
+          endTime: snappedEndTime
         }))
       }
 
       const handleMouseUp = () => {
         setIsDraggingEnd(false)
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
 
         // Add to history if changed
         if (clipState.endTime !== clipState.originalEndTime) {
           addToHistory({
             startTime: clipState.startTime,
             endTime: clipState.endTime,
-            description: `Set end time to ${formatTime(clipState.endTime)}`,
+            description: `Set end time to ${formatTime(clipState.endTime)}`
           })
           triggerAutosave()
         }
       }
 
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
     },
-    [clipState.startTime, clipState.endTime, clipState.originalEndTime],
+    [clipState.startTime, clipState.endTime, clipState.originalEndTime]
   )
 
   // Handle zoom change
-  const handleZoomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setZoomLevel(Number(e.target.value))
-  }, [])
+  const handleZoomChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setZoomLevel(Number(e.target.value))
+    },
+    []
+  )
 
   // Handle quality toggle
   const handleQualityToggle = useCallback(() => {
-    if (clipState.quality === "original") {
+    if (clipState.quality === 'original') {
       setShowQualityWarning(true)
     } else {
       setClipState((prev) => ({
         ...prev,
-        quality: "original",
+        quality: 'original'
       }))
       addToHistory({
         startTime: clipState.startTime,
         endTime: clipState.endTime,
-        description: "Set quality to original",
+        description: 'Set quality to original'
       })
       triggerAutosave()
     }
@@ -267,13 +275,13 @@ export default function FineTuneClip() {
   const confirmQualityChange = useCallback(() => {
     setClipState((prev) => ({
       ...prev,
-      quality: "compressed",
+      quality: 'compressed'
     }))
     setShowQualityWarning(false)
     addToHistory({
       startTime: clipState.startTime,
       endTime: clipState.endTime,
-      description: "Set quality to compressed",
+      description: 'Set quality to compressed'
     })
     triggerAutosave()
   }, [clipState.startTime, clipState.endTime])
@@ -282,83 +290,94 @@ export default function FineTuneClip() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Play/Pause with Space
-      if (e.key === " ") {
+      if (e.key === ' ') {
         e.preventDefault()
         handlePlayPause()
       }
 
       // Nudge start/end points with arrow keys
-      if (e.key === "ArrowLeft" && e.ctrlKey) {
+      if (e.key === 'ArrowLeft' && e.ctrlKey) {
         e.preventDefault()
         setClipState((prev) => ({
           ...prev,
-          startTime: Math.max(0, prev.startTime - 0.1),
+          startTime: Math.max(0, prev.startTime - 0.1)
         }))
         addToHistory({
           startTime: Math.max(0, clipState.startTime - 0.1),
           endTime: clipState.endTime,
-          description: `Nudged start time to ${formatTime(Math.max(0, clipState.startTime - 0.1))}`,
+          description: `Nudged start time to ${formatTime(
+            Math.max(0, clipState.startTime - 0.1)
+          )}`
         })
         triggerAutosave()
       }
 
-      if (e.key === "ArrowRight" && e.ctrlKey) {
+      if (e.key === 'ArrowRight' && e.ctrlKey) {
         e.preventDefault()
         setClipState((prev) => ({
           ...prev,
-          startTime: Math.min(prev.endTime - 1, prev.startTime + 0.1),
+          startTime: Math.min(prev.endTime - 1, prev.startTime + 0.1)
         }))
         addToHistory({
           startTime: Math.min(clipState.endTime - 1, clipState.startTime + 0.1),
           endTime: clipState.endTime,
-          description: `Nudged start time to ${formatTime(Math.min(clipState.endTime - 1, clipState.startTime + 0.1))}`,
+          description: `Nudged start time to ${formatTime(
+            Math.min(clipState.endTime - 1, clipState.startTime + 0.1)
+          )}`
         })
         triggerAutosave()
       }
 
-      if (e.key === "ArrowLeft" && e.shiftKey) {
+      if (e.key === 'ArrowLeft' && e.shiftKey) {
         e.preventDefault()
         setClipState((prev) => ({
           ...prev,
-          endTime: Math.max(prev.startTime + 1, prev.endTime - 0.1),
+          endTime: Math.max(prev.startTime + 1, prev.endTime - 0.1)
         }))
         addToHistory({
           startTime: clipState.startTime,
           endTime: Math.max(clipState.startTime + 1, clipState.endTime - 0.1),
-          description: `Nudged end time to ${formatTime(Math.max(clipState.startTime + 1, clipState.endTime - 0.1))}`,
+          description: `Nudged end time to ${formatTime(
+            Math.max(clipState.startTime + 1, clipState.endTime - 0.1)
+          )}`
         })
         triggerAutosave()
       }
 
-      if (e.key === "ArrowRight" && e.shiftKey) {
+      if (e.key === 'ArrowRight' && e.shiftKey) {
         e.preventDefault()
         setClipState((prev) => ({
           ...prev,
-          endTime: Math.min(60, prev.endTime + 0.1),
+          endTime: Math.min(60, prev.endTime + 0.1)
         }))
         addToHistory({
           startTime: clipState.startTime,
           endTime: Math.min(60, clipState.endTime + 0.1),
-          description: `Nudged end time to ${formatTime(Math.min(60, clipState.endTime + 0.1))}`,
+          description: `Nudged end time to ${formatTime(
+            Math.min(60, clipState.endTime + 0.1)
+          )}`
         })
         triggerAutosave()
       }
 
       // Undo/Redo
-      if (e.key === "z" && e.ctrlKey && !e.shiftKey) {
+      if (e.key === 'z' && e.ctrlKey && !e.shiftKey) {
         e.preventDefault()
         handleUndo()
       }
 
-      if ((e.key === "z" && e.ctrlKey && e.shiftKey) || (e.key === "y" && e.ctrlKey)) {
+      if (
+        (e.key === 'z' && e.ctrlKey && e.shiftKey) ||
+        (e.key === 'y' && e.ctrlKey)
+      ) {
         e.preventDefault()
         handleRedo()
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
-      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [handlePlayPause, clipState.startTime, clipState.endTime])
 
@@ -373,7 +392,7 @@ export default function FineTuneClip() {
       setHistory((prev) => [...prev, action])
       setHistoryIndex((prev) => prev + 1)
     },
-    [history, historyIndex],
+    [history, historyIndex]
   )
 
   // Handle undo
@@ -384,12 +403,12 @@ export default function FineTuneClip() {
       setClipState((prev) => ({
         ...prev,
         startTime: action.startTime,
-        endTime: action.endTime,
+        endTime: action.endTime
       }))
       setHistoryIndex(newIndex)
       setShowToast({
-        type: "info",
-        message: `Undo: ${action.description}`,
+        type: 'info',
+        message: `Undo: ${action.description}`
       })
       setTimeout(() => setShowToast(null), 3000)
       triggerAutosave()
@@ -404,12 +423,12 @@ export default function FineTuneClip() {
       setClipState((prev) => ({
         ...prev,
         startTime: action.startTime,
-        endTime: action.endTime,
+        endTime: action.endTime
       }))
       setHistoryIndex(newIndex)
       setShowToast({
-        type: "info",
-        message: `Redo: ${action.description}`,
+        type: 'info',
+        message: `Redo: ${action.description}`
       })
       setTimeout(() => setShowToast(null), 3000)
       triggerAutosave()
@@ -422,16 +441,16 @@ export default function FineTuneClip() {
       ...prev,
       startTime: prev.originalStartTime,
       endTime: prev.originalEndTime,
-      quality: "original",
+      quality: 'original'
     }))
     addToHistory({
       startTime: clipState.originalStartTime,
       endTime: clipState.originalEndTime,
-      description: "Reset to original",
+      description: 'Reset to original'
     })
     setShowToast({
-      type: "info",
-      message: "Reset to original clip",
+      type: 'info',
+      message: 'Reset to original clip'
     })
     setTimeout(() => setShowToast(null), 3000)
     triggerAutosave()
@@ -441,8 +460,8 @@ export default function FineTuneClip() {
   const handleNext = useCallback(() => {
     if (duration > 60) {
       setShowToast({
-        type: "error",
-        message: "Clip duration cannot exceed 60 seconds",
+        type: 'error',
+        message: 'Clip duration cannot exceed 60 seconds'
       })
       setTimeout(() => setShowToast(null), 3000)
       return
@@ -450,20 +469,20 @@ export default function FineTuneClip() {
 
     if (duration <= 0) {
       setShowToast({
-        type: "error",
-        message: "Clip duration must be greater than 0",
+        type: 'error',
+        message: 'Clip duration must be greater than 0'
       })
       setTimeout(() => setShowToast(null), 3000)
       return
     }
 
     // Save final state and navigate to next step
-    router.push("/clip-cutter/safety-check")
+    router.push('/clip-cutter/safety-check')
   }, [duration, router])
 
   // Handle back
   const handleBack = useCallback(() => {
-    router.push("/clip-cutter/suggestions")
+    router.push('/clip-cutter/suggestions')
   }, [router])
 
   // Autosave functionality
@@ -475,18 +494,18 @@ export default function FineTuneClip() {
     autosaveTimeoutRef.current = setTimeout(() => {
       // Simulate saving to local storage
       localStorage.setItem(
-        "clipCutterState",
+        'clipCutterState',
         JSON.stringify({
           startTime: clipState.startTime,
           endTime: clipState.endTime,
-          quality: clipState.quality,
-        }),
+          quality: clipState.quality
+        })
       )
 
       // Show autosave toast
       setShowToast({
-        type: "success",
-        message: `Saved · ${new Date().toLocaleTimeString()}`,
+        type: 'success',
+        message: `Saved · ${new Date().toLocaleTimeString()}`
       })
       setTimeout(() => setShowToast(null), 3000)
     }, 2000)
@@ -494,17 +513,17 @@ export default function FineTuneClip() {
 
   // Load saved state on mount
   useEffect(() => {
-    const savedState = localStorage.getItem("clipCutterState")
+    const savedState = localStorage.getItem('clipCutterState')
     if (savedState) {
       try {
         const parsed = JSON.parse(savedState)
         setClipState((prev) => ({
           ...prev,
-          ...parsed,
+          ...parsed
         }))
         setCurrentTime(parsed.startTime)
       } catch (e) {
-        console.error("Failed to parse saved state", e)
+        console.error('Failed to parse saved state', e)
       }
     }
   }, [])
@@ -514,14 +533,16 @@ export default function FineTuneClip() {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     const ms = Math.floor((seconds % 1) * 10)
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${ms}`
+    return `${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}.${ms}`
   }
 
   // Get duration color
   const getDurationColor = () => {
-    if (duration > 60) return "text-red-500"
-    if (duration > 55) return "text-yellow-400"
-    return "text-green-400"
+    if (duration > 60) return 'text-red-500'
+    if (duration > 55) return 'text-yellow-400'
+    return 'text-green-400'
   }
 
   // Calculate timeline positions
@@ -546,13 +567,15 @@ export default function FineTuneClip() {
       ticks.push(
         <div
           key={i}
-          className={`absolute h-${isMajor ? "3" : "2"} ${isMajor ? "bg-gray-400" : "bg-gray-600"}`}
+          className={`absolute h-${isMajor ? '3' : '2'} ${
+            isMajor ? 'bg-gray-400' : 'bg-gray-600'
+          }`}
           style={{
             left: `${(i / 60) * 100}%`,
-            width: "1px",
-            top: isMajor ? "0" : "4px",
+            width: '1px',
+            top: isMajor ? '0' : '4px'
           }}
-        ></div>,
+        ></div>
       )
 
       // Add labels for major ticks
@@ -563,12 +586,12 @@ export default function FineTuneClip() {
             className="absolute text-xs text-gray-400"
             style={{
               left: `${(i / 60) * 100}%`,
-              transform: "translateX(-50%)",
-              top: "12px",
+              transform: 'translateX(-50%)',
+              top: '12px'
             }}
           >
             {formatTime(i)}
-          </div>,
+          </div>
         )
       }
     }
@@ -576,14 +599,18 @@ export default function FineTuneClip() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-full bg-black text-white">
       {/* Header */}
       <header className="h-16 border-b border-gray-800 px-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">3 / 4 · Fine-tune your clip</h1>
-          <p className="text-sm text-gray-400">Adjust start and end points precisely</p>
+          <p className="text-sm text-gray-400">
+            Adjust start and end points precisely
+          </p>
         </div>
-        <div className={`font-mono text-lg ${getDurationColor()}`}>{formatTime(duration)}s</div>
+        <div className={`font-mono text-lg ${getDurationColor()}`}>
+          {formatTime(duration)}s
+        </div>
       </header>
 
       {/* Main content */}
@@ -594,7 +621,10 @@ export default function FineTuneClip() {
           <div className="h-[45%] bg-[#1A1A1A] p-6 flex flex-col justify-center">
             <div className="max-w-4xl mx-auto w-full">
               {/* Video player */}
-              <div className="relative bg-black rounded-lg overflow-hidden mb-4" style={{ aspectRatio: "16/9" }}>
+              <div
+                className="relative bg-black rounded-lg overflow-hidden mb-4"
+                style={{ aspectRatio: '16/9' }}
+              >
                 <video
                   ref={videoRef}
                   className="w-full h-full object-cover"
@@ -610,9 +640,13 @@ export default function FineTuneClip() {
                   <button
                     onClick={handlePlayPause}
                     className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    aria-label={isPlaying ? "Pause video" : "Play video"}
+                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
                   >
-                    {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+                    {isPlaying ? (
+                      <Pause size={24} />
+                    ) : (
+                      <Play size={24} className="ml-1" />
+                    )}
                   </button>
                 </div>
 
@@ -621,7 +655,7 @@ export default function FineTuneClip() {
                   <button
                     onClick={handleMuteToggle}
                     className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    aria-label={isMuted ? "Unmute" : "Mute"}
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
                     {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                   </button>
@@ -646,7 +680,11 @@ export default function FineTuneClip() {
                 onClick={handleTimelineClick}
               >
                 {/* Waveform visualization */}
-                <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                <svg
+                  className="w-full h-full"
+                  viewBox="0 0 100 30"
+                  preserveAspectRatio="none"
+                >
                   {waveformData.map((amplitude, i) => {
                     const x = i
                     const height = amplitude * 30
@@ -655,7 +693,9 @@ export default function FineTuneClip() {
                     // Determine if this part is within the selected range
                     const position = i / waveformData.length
                     const timePosition = position * 60
-                    const isSelected = timePosition >= clipState.startTime && timePosition <= clipState.endTime
+                    const isSelected =
+                      timePosition >= clipState.startTime &&
+                      timePosition <= clipState.endTime
 
                     return (
                       <rect
@@ -664,7 +704,7 @@ export default function FineTuneClip() {
                         y={y}
                         width="0.8"
                         height={height}
-                        fill={isSelected ? "#4ade80" : "#666"}
+                        fill={isSelected ? '#4ade80' : '#666'}
                         rx="0.2"
                       />
                     )
@@ -676,7 +716,7 @@ export default function FineTuneClip() {
                   className="absolute top-0 bottom-0 bg-green-500/20"
                   style={{
                     left: getStartHandlePosition(),
-                    right: `${100 - (clipState.endTime / 60) * 100}%`,
+                    right: `${100 - (clipState.endTime / 60) * 100}%`
                   }}
                 ></div>
 
@@ -690,7 +730,7 @@ export default function FineTuneClip() {
                 <div
                   ref={startHandleRef}
                   className={`absolute top-0 bottom-0 w-1 bg-green-500 cursor-ew-resize flex items-center justify-center group ${
-                    isDraggingStart ? "w-1.5" : ""
+                    isDraggingStart ? 'w-1.5' : ''
                   }`}
                   style={{ left: getStartHandlePosition() }}
                   onMouseDown={handleStartHandleDrag}
@@ -706,7 +746,7 @@ export default function FineTuneClip() {
                 <div
                   ref={endHandleRef}
                   className={`absolute top-0 bottom-0 w-1 bg-green-500 cursor-ew-resize flex items-center justify-center group ${
-                    isDraggingEnd ? "w-1.5" : ""
+                    isDraggingEnd ? 'w-1.5' : ''
                   }`}
                   style={{ left: getEndHandlePosition() }}
                   onMouseDown={handleEndHandleDrag}
@@ -728,7 +768,7 @@ export default function FineTuneClip() {
                   className="absolute top-0 bottom-0 bg-green-500/20"
                   style={{
                     left: getStartHandlePosition(),
-                    right: `${100 - (clipState.endTime / 60) * 100}%`,
+                    right: `${100 - (clipState.endTime / 60) * 100}%`
                   }}
                 ></div>
 
@@ -741,7 +781,7 @@ export default function FineTuneClip() {
                 {/* Start handle */}
                 <div
                   className={`absolute top-0 bottom-0 w-1 bg-green-500 cursor-ew-resize ${
-                    isDraggingStart ? "w-1.5" : ""
+                    isDraggingStart ? 'w-1.5' : ''
                   }`}
                   style={{ left: getStartHandlePosition() }}
                   onMouseDown={handleStartHandleDrag}
@@ -750,7 +790,7 @@ export default function FineTuneClip() {
                 {/* End handle */}
                 <div
                   className={`absolute top-0 bottom-0 w-1 bg-green-500 cursor-ew-resize ${
-                    isDraggingEnd ? "w-1.5" : ""
+                    isDraggingEnd ? 'w-1.5' : ''
                   }`}
                   style={{ left: getEndHandlePosition() }}
                   onMouseDown={handleEndHandleDrag}
@@ -772,11 +812,17 @@ export default function FineTuneClip() {
                 <span className="text-sm text-gray-400">{zoomLevel}x</span>
                 <div className="ml-4 text-sm text-gray-400">
                   <span className="mr-2">Keyboard shortcuts:</span>
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">Space</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">
+                    Space
+                  </kbd>
                   <span className="mx-1">Play/Pause</span>
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">Ctrl+←/→</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">
+                    Ctrl+←/→
+                  </kbd>
                   <span className="mx-1">Adjust start</span>
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">Shift+←/→</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">
+                    Shift+←/→
+                  </kbd>
                   <span className="mx-1">Adjust end</span>
                 </div>
               </div>
@@ -794,7 +840,11 @@ export default function FineTuneClip() {
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title={historyIndex > 0 ? `Undo: ${history[historyIndex]?.description}` : "Nothing to undo"}
+                title={
+                  historyIndex > 0
+                    ? `Undo: ${history[historyIndex]?.description}`
+                    : 'Nothing to undo'
+                }
               >
                 <RotateCcw size={16} />
                 <span>Undo</span>
@@ -806,7 +856,7 @@ export default function FineTuneClip() {
                 title={
                   historyIndex < history.length - 1
                     ? `Redo: ${history[historyIndex + 1]?.description}`
-                    : "Nothing to redo"
+                    : 'Nothing to redo'
                 }
               >
                 <RotateCw size={16} />
@@ -817,7 +867,9 @@ export default function FineTuneClip() {
 
           {/* Duration badge */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Clip Duration</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">
+              Clip Duration
+            </h3>
             <div className={`text-2xl font-mono ${getDurationColor()}`}>
               {formatTime(duration)}
               <span className="text-sm text-gray-400 ml-1">seconds</span>
@@ -832,7 +884,9 @@ export default function FineTuneClip() {
 
           {/* Quality toggle */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Quality Settings</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">
+              Quality Settings
+            </h3>
             <div className="flex items-center justify-between">
               <span>Preserve original quality</span>
               <label className="flex items-center cursor-pointer">
@@ -840,23 +894,27 @@ export default function FineTuneClip() {
                   <input
                     type="checkbox"
                     className="sr-only"
-                    checked={clipState.quality === "original"}
+                    checked={clipState.quality === 'original'}
                     onChange={handleQualityToggle}
                   />
                   <div
                     className={`w-10 h-5 rounded-full ${
-                      clipState.quality === "original" ? "bg-green-500" : "bg-gray-600"
+                      clipState.quality === 'original'
+                        ? 'bg-green-500'
+                        : 'bg-gray-600'
                     }`}
                   ></div>
                   <div
                     className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${
-                      clipState.quality === "original" ? "transform translate-x-5" : ""
+                      clipState.quality === 'original'
+                        ? 'transform translate-x-5'
+                        : ''
                     }`}
                   ></div>
                 </div>
               </label>
             </div>
-            {clipState.quality === "compressed" && (
+            {clipState.quality === 'compressed' && (
               <div className="mt-2 text-sm text-yellow-400 flex items-center">
                 <AlertTriangle size={14} className="mr-1" />
                 <span>Video will be compressed</span>
@@ -885,11 +943,15 @@ export default function FineTuneClip() {
               </li>
               <li className="flex justify-between">
                 <span>Adjust start point</span>
-                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Ctrl+←/→</kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">
+                  Ctrl+←/→
+                </kbd>
               </li>
               <li className="flex justify-between">
                 <span>Adjust end point</span>
-                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Shift+←/→</kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">
+                  Shift+←/→
+                </kbd>
               </li>
               <li className="flex justify-between">
                 <span>Undo</span>
@@ -897,7 +959,9 @@ export default function FineTuneClip() {
               </li>
               <li className="flex justify-between">
                 <span>Redo</span>
-                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">Ctrl+Shift+Z</kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-800 rounded">
+                  Ctrl+Shift+Z
+                </kbd>
               </li>
             </ul>
           </div>
@@ -933,8 +997,8 @@ export default function FineTuneClip() {
               Reduce Quality Warning
             </h3>
             <p className="mb-4">
-              Turning off original quality will compress your video. This may reduce the quality for your fans but will
-              save storage space.
+              Turning off original quality will compress your video. This may
+              reduce the quality for your fans but will save storage space.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -958,21 +1022,29 @@ export default function FineTuneClip() {
       {showToast && (
         <div
           className={`fixed bottom-6 left-6 p-4 rounded-lg shadow-lg flex items-center gap-3 max-w-md animate-fade-in ${
-            showToast.type === "success"
-              ? "bg-green-900/80 text-white"
-              : showToast.type === "info"
-                ? "bg-blue-900/80 text-white"
-                : showToast.type === "warning"
-                  ? "bg-yellow-900/80 text-white"
-                  : "bg-red-900/80 text-white"
+            showToast.type === 'success'
+              ? 'bg-green-900/80 text-white'
+              : showToast.type === 'info'
+              ? 'bg-blue-900/80 text-white'
+              : showToast.type === 'warning'
+              ? 'bg-yellow-900/80 text-white'
+              : 'bg-red-900/80 text-white'
           }`}
           role="status"
           aria-live="polite"
         >
-          {showToast.type === "success" && <Check size={20} className="text-green-400" />}
-          {showToast.type === "info" && <Info size={20} className="text-blue-400" />}
-          {showToast.type === "warning" && <AlertTriangle size={20} className="text-yellow-400" />}
-          {showToast.type === "error" && <AlertTriangle size={20} className="text-red-400" />}
+          {showToast.type === 'success' && (
+            <Check size={20} className="text-green-400" />
+          )}
+          {showToast.type === 'info' && (
+            <Info size={20} className="text-blue-400" />
+          )}
+          {showToast.type === 'warning' && (
+            <AlertTriangle size={20} className="text-yellow-400" />
+          )}
+          {showToast.type === 'error' && (
+            <AlertTriangle size={20} className="text-red-400" />
+          )}
           <div className="flex-1">{showToast.message}</div>
         </div>
       )}

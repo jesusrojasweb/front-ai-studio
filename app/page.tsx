@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import Sidebar from "@/components/sidebar"
-import CreatorToolsSidebar from "@/components/creator-tools-sidebar"
-import Dashboard from "@/components/dashboard"
+import { useState } from 'react'
+import Sidebar from '@/components/sidebar'
+import CreatorToolsSidebar from '@/components/creator-tools-sidebar'
+import Dashboard from '@/components/dashboard'
 
 export default function Home() {
   const [showCreatorTools, setShowCreatorTools] = useState(false)
-  const [activeTab, setActiveTab] = useState("dashboard")
+  const [activeTab, setActiveTab] = useState('dashboard')
 
   const toggleCreatorTools = () => {
     setShowCreatorTools(!showCreatorTools)
@@ -15,7 +15,11 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-black text-white">
-      {showCreatorTools ? <CreatorToolsSidebar /> : <Sidebar onCreatorToolsClick={toggleCreatorTools} />}
+      {showCreatorTools ? (
+        <CreatorToolsSidebar />
+      ) : (
+        <Sidebar onCreatorToolsClick={toggleCreatorTools} />
+      )}
 
       <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
@@ -47,25 +51,31 @@ export default function Home() {
         <div className="w-full">
           <div className="w-full flex justify-center mb-6 border-b border-gray-800">
             <button
-              onClick={() => setActiveTab("dashboard")}
+              onClick={() => setActiveTab('dashboard')}
               className={`flex-1 pb-4 text-lg ${
-                activeTab === "dashboard" ? "border-b-2 border-green-500 text-white" : "text-gray-400"
+                activeTab === 'dashboard'
+                  ? 'border-b-2 border-green-500 text-white'
+                  : 'text-gray-400'
               }`}
             >
               Dashboard
             </button>
             <button
-              onClick={() => setActiveTab("feed")}
+              onClick={() => setActiveTab('feed')}
               className={`flex-1 pb-4 text-lg ${
-                activeTab === "feed" ? "border-b-2 border-green-500 text-white" : "text-gray-400"
+                activeTab === 'feed'
+                  ? 'border-b-2 border-green-500 text-white'
+                  : 'text-gray-400'
               }`}
             >
               Feed
             </button>
           </div>
 
-          {activeTab === "dashboard" && <Dashboard />}
-          {activeTab === "feed" && <div className="text-center py-10">Feed content would go here</div>}
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'feed' && (
+            <div className="text-center py-10">Feed content would go here</div>
+          )}
         </div>
       </div>
     </div>
