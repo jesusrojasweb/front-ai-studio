@@ -14,6 +14,7 @@ import {
   Check,
   Film
 } from 'lucide-react'
+import { videosService, type VideoEntity } from '@/lib/services/videos.service'
 
 export default function ClipCutter() {
   const [files, setFiles] = useState<File[]>([])
@@ -24,6 +25,9 @@ export default function ClipCutter() {
       error?: string
       badges?: Array<'SD' | 'no-audio' | 'OK'>
       thumbnail?: string
+      stage?: string
+      videoId?: string
+      videoData?: VideoEntity
     }
   }>({})
   const [dragOver, setDragOver] = useState(false)
@@ -68,103 +72,144 @@ export default function ClipCutter() {
     []
   )
 
-  const handleFiles = useCallback(
-    (newFiles: File[]) => {
-      const validFiles = newFiles.filter((file) => {
-        const validTypes = ['video/mp4', 'video/quicktime', 'video/webm']
-        if (!validTypes.includes(file.type)) {
-          setShowToast({
-            type: 'error',
-            message: `${file.name} is not a supported format. Use MP4, MOV, or WEBM.`,
-            action: () => {}
-          })
-          return false
-        }
-        return true
-      })
+  const handleFiles = useCallback((newFiles: File[]) => {
+    const validFiles = newFiles.filter((file) => {
+      const validTypes = ['video/mp4', 'video/quicktime', 'video/webm']
+      if (!validTypes.includes(file.type)) {
+        setShowToast({
+          type: 'error',
+          message: `${file.name} is not a supported format. Use MP4, MOV, or WEBM.`,
+          action: () => {}
+        })
+        return false
+      }
 
-      if (validFiles.length === 0) return
+      // Check file size (2GB limit)
+      const maxSize = 2 * 1024 * 1024 * 1024 // 2GB in bytes
+      if (file.size > maxSize) {
+        setShowToast({
+          type: 'error',
+          message: `${file.name} is too large. Maximum file size is 2GB.`,
+          action: () => {}
+        })
+        return false
+      }
 
-      setFiles((prev) => [...prev, ...validFiles])
+      return true
+    })
 
-      // Simulate file upload and analysis for each valid file
-      validFiles.forEach((file) => {
+    if (validFiles.length === 0) return
+
+    setFiles((prev) => [...prev, ...validFiles])
+
+    // Upload each valid file using the real API
+    validFiles.forEach(async (file) => {
+      try {
         // Initialize file status
         setFileStatuses((prev) => ({
           ...prev,
           [file.name]: {
             progress: 0,
-            status: 'uploading'
+            status: 'uploading',
+            stage: 'Preparing...'
           }
         }))
 
-        // Simulate upload progress
-        let progress = 0
-        const uploadInterval = setInterval(() => {
-          progress += Math.random() * 10
-          if (progress >= 100) {
-            clearInterval(uploadInterval)
-            progress = 100
-
-            // After upload complete, simulate analysis
+        // Start video upload workflow
+        const videoData = await videosService.uploadVideo(
+          file,
+          (stage: string, progress: number) => {
             setFileStatuses((prev) => ({
               ...prev,
               [file.name]: {
                 ...prev[file.name],
-                progress: 100,
-                status: 'analyzing'
-              }
-            }))
-
-            // Simulate analysis completion after a delay
-            setTimeout(() => {
-              // Randomly assign badges for demo purposes
-              const badges: Array<'SD' | 'no-audio' | 'OK'> = []
-              if (Math.random() > 0.7) badges.push('SD')
-              if (Math.random() > 0.8) badges.push('no-audio')
-              if (badges.length === 0) badges.push('OK')
-
-              setFileStatuses((prev) => ({
-                ...prev,
-                [file.name]: {
-                  ...prev[file.name],
-                  progress: 100,
-                  status: 'complete',
-                  badges,
-                  thumbnail: '/placeholder.svg?height=64&width=36'
-                }
-              }))
-
-              // Show success toast when all files are processed
-              const allComplete = Object.values(fileStatuses).every(
-                (status) =>
-                  status.status === 'complete' || status.status === 'error'
-              )
-
-              if (allComplete) {
-                setShowToast({
-                  type: 'success',
-                  message: `${
-                    Object.keys(fileStatuses).length
-                  } videos ready · 100% analyzed`,
-                  action: () => {}
-                })
-              }
-            }, 2000)
-          } else {
-            setFileStatuses((prev) => ({
-              ...prev,
-              [file.name]: {
-                ...prev[file.name],
-                progress
+                progress,
+                stage,
+                status: progress < 100 ? 'uploading' : 'analyzing'
               }
             }))
           }
-        }, 200)
-      })
-    },
-    [fileStatuses]
-  )
+        )
+
+        // Generate badges based on video metadata
+        const badges: Array<'SD' | 'no-audio' | 'OK'> = []
+
+        // Check resolution for SD badge
+        if (videoData.resolution) {
+          const [width] = videoData.resolution.split('x').map(Number)
+          if (width < 1280) badges.push('SD')
+        }
+
+        // Check audio
+        if (!videoData.has_audio) badges.push('no-audio')
+
+        // Add OK badge if no issues
+        if (badges.length === 0) badges.push('OK')
+
+        // Mark as complete
+        setFileStatuses((prev) => ({
+          ...prev,
+          [file.name]: {
+            ...prev[file.name],
+            progress: 100,
+            status: 'complete',
+            badges,
+            videoId: videoData.id,
+            videoData,
+            thumbnail: '/placeholder.svg?height=64&width=36' // TODO: Generate real thumbnail
+          }
+        }))
+
+        console.log('✅ Video upload completed for:', file.name, videoData)
+
+        // Check if all files are now complete and show success toast
+        setTimeout(() => {
+          setFileStatuses((currentStatuses) => {
+            const allFiles = Object.values(currentStatuses)
+            const allComplete = allFiles.every(
+              (status) =>
+                status.status === 'complete' || status.status === 'error'
+            )
+            const successCount = allFiles.filter(
+              (status) => status.status === 'complete'
+            ).length
+
+            if (allComplete && successCount > 0) {
+              setShowToast({
+                type: 'success',
+                message: `${successCount} video${
+                  successCount > 1 ? 's' : ''
+                } ready · 100% analyzed`,
+                action: () => {}
+              })
+            }
+
+            return currentStatuses
+          })
+        }, 100)
+      } catch (error) {
+        console.error('❌ Video upload failed for:', file.name, error)
+
+        setFileStatuses((prev) => ({
+          ...prev,
+          [file.name]: {
+            ...prev[file.name],
+            progress: 0,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Upload failed'
+          }
+        }))
+
+        setShowToast({
+          type: 'error',
+          message: `Failed to upload ${file.name}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+          action: () => {}
+        })
+      }
+    })
+  }, [])
 
   const handleCancel = useCallback((fileName: string) => {
     setFiles((prev) => prev.filter((file) => file.name !== fileName))
@@ -181,14 +226,31 @@ export default function ClipCutter() {
   }, [])
 
   const handleNext = useCallback(() => {
-    // In a real implementation, this would navigate to the next step
-    // and pass the processed files
-    router.push('/clip-cutter/suggestions')
-  }, [router])
+    // Get the first completed video to proceed with
+    const completedFiles = Object.values(fileStatuses).filter(
+      (status) => status.status === 'complete' && status.videoData
+    )
+
+    if (completedFiles.length > 0) {
+      const firstVideoData = completedFiles[0].videoData
+      console.log(
+        '🚀 Proceeding to suggestions with video:',
+        firstVideoData?.id
+      )
+
+      // In a real implementation, you might want to pass the video ID via query params
+      // or store it in a global state management solution
+      router.push(`/clip-cutter/suggestions?videoId=${firstVideoData?.id}`)
+    } else {
+      router.push('/clip-cutter/suggestions')
+    }
+  }, [router, fileStatuses])
 
   const isNextDisabled =
     Object.values(fileStatuses).length === 0 ||
-    !Object.values(fileStatuses).some((status) => status.status === 'complete')
+    !Object.values(fileStatuses).some(
+      (status) => status.status === 'complete' && status.videoData
+    )
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
@@ -317,12 +379,13 @@ export default function ClipCutter() {
                         <div className="mt-1 flex items-center text-sm">
                           {fileStatus.status === 'uploading' && (
                             <span className="text-gray-400">
-                              Uploading... {fileStatus.progress.toFixed(0)}%
+                              {fileStatus.stage || 'Uploading...'}{' '}
+                              {fileStatus.progress.toFixed(0)}%
                             </span>
                           )}
                           {fileStatus.status === 'analyzing' && (
                             <span className="text-gray-400">
-                              Analyzing video...
+                              {fileStatus.stage || 'Analyzing video...'}
                             </span>
                           )}
                           {fileStatus.status === 'complete' && (
