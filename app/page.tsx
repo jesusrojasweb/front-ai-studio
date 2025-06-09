@@ -1,26 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import Sidebar from '@/components/sidebar'
-import CreatorToolsSidebar from '@/components/creator-tools-sidebar'
 import Dashboard from '@/components/dashboard'
 
 export default function Home() {
-  const [showCreatorTools, setShowCreatorTools] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  const toggleCreatorTools = () => {
-    setShowCreatorTools(!showCreatorTools)
-  }
-
   return (
-    <div className="flex h-screen bg-black text-white">
-      {showCreatorTools ? (
-        <CreatorToolsSidebar />
-      ) : (
-        <Sidebar onCreatorToolsClick={toggleCreatorTools} />
-      )}
-
+    <div className="flex flex-col h-full bg-black text-white">
       <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-bold">HOME</h1>

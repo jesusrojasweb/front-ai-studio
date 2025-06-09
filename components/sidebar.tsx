@@ -20,11 +20,7 @@ import {
   Flag
 } from 'lucide-react'
 
-interface SidebarProps {
-  onCreatorToolsClick: () => void
-}
-
-export default function Sidebar({ onCreatorToolsClick }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname()
 
   return (
@@ -71,58 +67,51 @@ export default function Sidebar({ onCreatorToolsClick }: SidebarProps) {
             <MessageSquare size={20} />
             <span>Messages</span>
           </li>
-          <li
-            className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer"
-            onClick={onCreatorToolsClick}
-          >
+          <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
             <BarChart2 size={20} />
             <span>Creator Tools</span>
-            <span className="ml-auto">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-chevron-right"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </span>
           </li>
           <li
-            className={`hover:bg-gray-800 ${
-              pathname.startsWith('/clip-cutter') ? 'bg-gray-800' : ''
+            className={`hover:bg-gradient-to-r hover:from-purple-900/30 hover:to-blue-900/30 rounded-lg mx-2 transition-all duration-300 ${
+              pathname.startsWith('/clip-cutter')
+                ? 'bg-gradient-to-r from-purple-900/50 to-blue-900/50 shadow-lg shadow-purple-500/20'
+                : ''
             }`}
           >
             <Link
               href="/clip-cutter"
-              className="px-4 py-3 flex items-center gap-3 cursor-pointer"
+              className="px-4 py-3 flex items-center gap-3 cursor-pointer relative"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-scissors"
-              >
-                <circle cx="6" cy="6" r="3" />
-                <circle cx="18" cy="18" r="3" />
-                <path d="M8.12 8.12 18 18" />
-                <path d="M8.12 8.12 18 18" />
-                <path d="m6 14 8.12-8.12" />
-                <path d="m14 18-8.12-8.12" />
-              </svg>
-              <span>Clip Cutter</span>
+              <div className="relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-scissors text-purple-400"
+                >
+                  <circle cx="6" cy="6" r="3" />
+                  <circle cx="18" cy="18" r="3" />
+                  <path d="M8.12 8.12 18 18" />
+                  <path d="M8.12 8.12 18 18" />
+                  <path d="m6 14 8.12-8.12" />
+                  <path d="m14 18-8.12-8.12" />
+                </svg>
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full animate-pulse"></div>
+              </div>
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent font-medium">
+                Clip Cutter
+              </span>
+              <div className="ml-auto">
+                <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full font-bold shadow-lg">
+                  AI
+                </span>
+              </div>
             </Link>
           </li>
           <li className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800 cursor-pointer">
