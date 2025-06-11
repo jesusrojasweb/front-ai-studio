@@ -1,6 +1,8 @@
 // Auth storage service for handling tokens and user session
 // This service manages the persistence of authentication state
 
+import { JWTDecoder } from '@/lib/utils/jwt-decoder'
+
 export interface UserData {
   id: string
   email: string
@@ -11,12 +13,14 @@ export interface UserData {
 
 export interface AuthSession {
   accessToken: string
+  refreshToken?: string
   user: UserData
   expiresAt?: number
 }
 
 class AuthStorageService {
   private readonly ACCESS_TOKEN_KEY = 'ai_studio_access_token'
+  private readonly REFRESH_TOKEN_KEY = 'ai_studio_refresh_token'
   private readonly USER_DATA_KEY = 'ai_studio_user_data'
   private readonly EXPIRY_KEY = 'ai_studio_token_expiry'
 
@@ -27,12 +31,45 @@ class AuthStorageService {
     try {
       localStorage.setItem(this.ACCESS_TOKEN_KEY, token)
 
-      if (expiresIn) {
-        const expiryTime = Date.now() + expiresIn * 1000
-        localStorage.setItem(this.EXPIRY_KEY, expiryTime.toString())
+      // Use JWT expiration if available, otherwise use provided expiresIn
+      const jwtExpiration = JWTDecoder.getExpiration(token)
+      let expiryTime: number
+
+      if (jwtExpiration) {
+        // JWT expiration is in seconds, convert to milliseconds
+        expiryTime = jwtExpiration * 1000
+      } else if (expiresIn) {
+        // expiresIn is in seconds, convert to milliseconds
+        expiryTime = Date.now() + expiresIn * 1000
+      } else {
+        // Default to 1 hour if no expiration info available
+        expiryTime = Date.now() + 3600 * 1000
       }
+
+      localStorage.setItem(this.EXPIRY_KEY, expiryTime.toString())
     } catch (error) {
       console.error('Failed to store access token:', error)
+    }
+  }
+
+  setRefreshToken(refreshToken: string): void {
+    if (typeof window === 'undefined') return
+
+    try {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken)
+    } catch (error) {
+      console.error('Failed to store refresh token:', error)
+    }
+  }
+
+  getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null
+
+    try {
+      return localStorage.getItem(this.REFRESH_TOKEN_KEY)
+    } catch (error) {
+      console.error('Failed to retrieve refresh token:', error)
+      return null
     }
   }
 
@@ -41,10 +78,11 @@ class AuthStorageService {
 
     try {
       const token = localStorage.getItem(this.ACCESS_TOKEN_KEY)
+      if (!token) return null
 
-      // Check if token is expired
-      if (token && this.isTokenExpired()) {
-        this.clearSession()
+      // Check if token is expired using JWT decoder
+      if (JWTDecoder.isExpired(token)) {
+        console.log('🔐 Access token has expired')
         return null
       }
 
@@ -55,14 +93,30 @@ class AuthStorageService {
     }
   }
 
+  // Check if token will expire soon (within 5 minutes)
+  isTokenNearExpiration(): boolean {
+    if (typeof window === 'undefined') return false
+
+    try {
+      const token = localStorage.getItem(this.ACCESS_TOKEN_KEY)
+      if (!token) return true
+
+      // Token will expire within 5 minutes (300 seconds)
+      return JWTDecoder.willExpireWithin(token, 300)
+    } catch (error) {
+      console.error('Failed to check token expiration:', error)
+      return true
+    }
+  }
+
   private isTokenExpired(): boolean {
     if (typeof window === 'undefined') return false
 
     try {
-      const expiryTime = localStorage.getItem(this.EXPIRY_KEY)
-      if (!expiryTime) return false
+      const token = localStorage.getItem(this.ACCESS_TOKEN_KEY)
+      if (!token) return true
 
-      return Date.now() > parseInt(expiryTime)
+      return JWTDecoder.isExpired(token)
     } catch (error) {
       console.error('Failed to check token expiry:', error)
       return false
@@ -95,11 +149,15 @@ class AuthStorageService {
   // Session management
   setSession(session: AuthSession): void {
     this.setAccessToken(session.accessToken, session.expiresAt)
+    if (session.refreshToken) {
+      this.setRefreshToken(session.refreshToken)
+    }
     this.setUserData(session.user)
   }
 
   getSession(): AuthSession | null {
     const accessToken = this.getAccessToken()
+    const refreshToken = this.getRefreshToken()
     const userData = this.getUserData()
 
     if (!accessToken || !userData) {
@@ -108,6 +166,7 @@ class AuthStorageService {
 
     return {
       accessToken,
+      refreshToken: refreshToken || undefined,
       user: userData
     }
   }
@@ -117,6 +176,7 @@ class AuthStorageService {
 
     try {
       localStorage.removeItem(this.ACCESS_TOKEN_KEY)
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY)
       localStorage.removeItem(this.USER_DATA_KEY)
       localStorage.removeItem(this.EXPIRY_KEY)
     } catch (error) {
@@ -126,7 +186,17 @@ class AuthStorageService {
 
   // Authentication state checks
   isAuthenticated(): boolean {
-    return this.getAccessToken() !== null
+    const token = localStorage.getItem(this.ACCESS_TOKEN_KEY)
+    if (!token) return false
+
+    // Check if token is expired
+    if (this.isTokenExpired()) {
+      console.log('🔐 Token expired, clearing session')
+      this.clearSession()
+      return false
+    }
+
+    return true
   }
 
   // Get authorization header for API calls
@@ -149,6 +219,29 @@ class AuthStorageService {
     }
 
     return this.getUserData()
+  }
+
+  // Get token expiration info for debugging
+  getTokenExpirationInfo(): {
+    expiresAt: number | null
+    timeUntilExpiration: number | null
+    isExpired: boolean
+    willExpireSoon: boolean
+  } | null {
+    const token = localStorage.getItem(this.ACCESS_TOKEN_KEY)
+    if (!token) return null
+
+    const expiresAt = JWTDecoder.getExpiration(token)
+    const timeUntilExpiration = JWTDecoder.getTimeUntilExpiration(token)
+    const isExpired = JWTDecoder.isExpired(token)
+    const willExpireSoon = JWTDecoder.willExpireWithin(token, 300) // 5 minutes
+
+    return {
+      expiresAt,
+      timeUntilExpiration,
+      isExpired,
+      willExpireSoon
+    }
   }
 }
 

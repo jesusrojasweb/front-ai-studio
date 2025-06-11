@@ -27,6 +27,19 @@ export interface RegisterRequest {
 
 export interface LoginResponse {
   access_token: string
+  refresh_token?: string
+  expires_in?: number
+  user?: UserData
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
+export interface RefreshTokenResponse {
+  access_token: string
+  refresh_token: string
+  expires_in: number
   user?: UserData
 }
 
@@ -46,14 +59,24 @@ export interface ApiError {
 
 class AuthenticationService {
   private readonly baseUrl: string
+  private refreshPromise: Promise<boolean> | null = null
 
   constructor() {
     this.baseUrl = env.authApiUrl
   }
 
-  // Generic API call method with error handling
+  // Generic API call method with error handling and auto token refresh
   private async apiCall<T>(endpoint: string, options: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
+
+    // Check if we need to refresh token before making the call
+    if (
+      endpoint !== '/login' &&
+      endpoint !== '/register' &&
+      endpoint !== '/refresh'
+    ) {
+      await this.ensureValidToken()
+    }
 
     try {
       const response = await fetch(url, {
@@ -73,6 +96,24 @@ class AuthenticationService {
           errorMessage = errorData.message || errorData.error || errorMessage
         } catch {
           // If response is not JSON, use default message
+        }
+
+        // If 401 and not a login/register call, try to refresh token once
+        if (
+          response.status === 401 &&
+          endpoint !== '/login' &&
+          endpoint !== '/register' &&
+          endpoint !== '/refresh'
+        ) {
+          console.log('🔐 Received 401, attempting token refresh')
+          const refreshed = await this.refreshToken()
+          if (refreshed) {
+            // Retry the original request with new token
+            return this.apiCall(endpoint, options)
+          } else {
+            // Refresh failed, logout user
+            this.logout()
+          }
         }
 
         const apiError: ApiError = {
@@ -96,6 +137,19 @@ class AuthenticationService {
 
       // Re-throw API errors
       throw error
+    }
+  }
+
+  // Ensure we have a valid token, refresh if needed
+  private async ensureValidToken(): Promise<void> {
+    if (!authStorage.isAuthenticated()) {
+      return
+    }
+
+    // Check if token will expire soon and refresh proactively
+    if (authStorage.isTokenNearExpiration()) {
+      console.log('🔐 Token will expire soon, refreshing proactively')
+      await this.refreshToken()
     }
   }
 
@@ -154,9 +208,13 @@ class AuthenticationService {
 
       console.log('✅ Login successful')
 
-      // Store the authentication data
+      // Store the authentication data including refresh token
       if (response.access_token) {
-        authStorage.setAccessToken(response.access_token)
+        authStorage.setAccessToken(response.access_token, response.expires_in)
+
+        if (response.refresh_token) {
+          authStorage.setRefreshToken(response.refresh_token)
+        }
 
         if (response.user) {
           authStorage.setUserData(response.user)
@@ -190,6 +248,14 @@ class AuthenticationService {
   logout(): void {
     console.log('🔐 Logging out user')
     authStorage.clearSession()
+
+    // Clear any pending refresh promise
+    this.refreshPromise = null
+
+    // Redirect to login page if in browser
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
   }
 
   // Get current authentication status
@@ -214,10 +280,9 @@ class AuthenticationService {
     }
 
     try {
-      // TODO: Implement session validation endpoint if available
-      // For now, just check if we have a valid token
-      const token = authStorage.getAccessToken()
-      return !!token
+      // Make sure we have a valid token
+      await this.ensureValidToken()
+      return this.isAuthenticated()
     } catch (error) {
       console.error('Session validation failed:', error)
       this.logout()
@@ -225,17 +290,70 @@ class AuthenticationService {
     }
   }
 
-  // Refresh token if needed (for future implementation)
+  // Refresh token implementation
   async refreshToken(): Promise<boolean> {
+    // Prevent multiple simultaneous refresh attempts
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    this.refreshPromise = this.performTokenRefresh()
+    const result = await this.refreshPromise
+    this.refreshPromise = null
+    return result
+  }
+
+  private async performTokenRefresh(): Promise<boolean> {
     try {
-      // TODO: Implement refresh token logic when endpoint is available
-      console.log('Token refresh not implemented yet')
-      return false
+      const refreshToken = authStorage.getRefreshToken()
+
+      if (!refreshToken) {
+        console.log('🔐 No refresh token available')
+        return false
+      }
+
+      console.log('🔐 Refreshing access token')
+
+      const refreshData: RefreshTokenRequest = { refreshToken }
+
+      const response = await fetch(`${this.baseUrl}/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(refreshData)
+      })
+
+      if (!response.ok) {
+        console.error('🔐 Token refresh failed:', response.status)
+        return false
+      }
+
+      const refreshResponse = (await response.json()) as RefreshTokenResponse
+
+      console.log('✅ Token refresh successful')
+
+      // Store the new tokens
+      authStorage.setAccessToken(
+        refreshResponse.access_token,
+        refreshResponse.expires_in
+      )
+      authStorage.setRefreshToken(refreshResponse.refresh_token)
+
+      if (refreshResponse.user) {
+        authStorage.setUserData(refreshResponse.user)
+      }
+
+      return true
     } catch (error) {
-      console.error('Token refresh failed:', error)
-      this.logout()
+      console.error('❌ Token refresh failed:', error)
       return false
     }
+  }
+
+  // Get token expiration info for debugging
+  getTokenInfo() {
+    return authStorage.getTokenExpirationInfo()
   }
 }
 
