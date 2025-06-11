@@ -322,15 +322,6 @@ export default function ClipSuggestions() {
       if (selectedClip && video) {
         const clipDuration = selectedClip.duration_ms / 1000
 
-        if (newTime > 60) {
-          setShowToast({
-            type: 'warning',
-            message: 'Clips are limited to 60 seconds'
-          })
-          setTimeout(() => setShowToast(null), 3000)
-          return
-        }
-
         // Ensure we don't go beyond the clip duration
         const clampedTime = Math.min(newTime, clipDuration)
 
@@ -404,6 +395,19 @@ export default function ClipSuggestions() {
     return `${mins.toString().padStart(2, '0')}:${secs
       .toString()
       .padStart(2, '0')}`
+  }
+
+  const formatDuration = (seconds: number) => {
+    const totalSeconds = Math.round(seconds)
+    if (totalSeconds < 60) {
+      return `${totalSeconds}s`
+    }
+    const mins = Math.floor(totalSeconds / 60)
+    const secs = totalSeconds % 60
+    if (secs === 0) {
+      return `${mins}m`
+    }
+    return `${mins}m ${secs}s`
   }
 
   const getScoreBadge = (score: number) => {
@@ -555,7 +559,7 @@ export default function ClipSuggestions() {
         <div>
           <h1 className="text-xl font-bold">2 / 4 · Choose your clip</h1>
           <p className="text-sm text-gray-400">
-            Pick the best ≤ 60 s highlight
+            Pick the best ≤ 5 min highlight
           </p>
         </div>
       </header>
@@ -627,7 +631,9 @@ export default function ClipSuggestions() {
                       />
                       <div className="flex justify-between text-xs text-gray-400 mt-1">
                         <span>{formatTime(currentTime)}</span>
-                        <span>{selectedClip.duration_ms / 1000}s</span>
+                        <span>
+                          {formatTime(selectedClip.duration_ms / 1000)}
+                        </span>
                       </div>
                     </>
                   )}
@@ -705,7 +711,7 @@ export default function ClipSuggestions() {
 
                             {/* Duration chip */}
                             <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded text-xs">
-                              {Math.round(clip.duration_ms / 1000)}s
+                              {formatDuration(clip.duration_ms / 1000)}
                             </div>
 
                             {/* Score badge */}
@@ -814,8 +820,8 @@ export default function ClipSuggestions() {
                     </p>
                     <p className="text-sm">
                       Score: {selectedClip.score.toFixed(2)} | Duration:{' '}
-                      {Math.round(selectedClip.duration_ms / 1000)}s | Safety:{' '}
-                      {selectedClip.safety_status}
+                      {formatDuration(selectedClip.duration_ms / 1000)} |
+                      Safety: {selectedClip.safety_status}
                     </p>
                   </div>
                 )}
