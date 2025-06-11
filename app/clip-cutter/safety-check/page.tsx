@@ -4,6 +4,7 @@ import type React from 'react'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAtom } from 'jotai'
 import {
   Check,
   AlertTriangle,
@@ -21,14 +22,25 @@ import {
   Loader2
 } from 'lucide-react'
 
-interface SafetyResult {
-  status: 'safe' | 'needs-review' | 'blocked'
-  confidence: number
-  reason?: string
-  policyViolation?: string
-  flaggedTimestamp?: number
-  details?: string
-}
+// Services
+import { clipsService } from '@/lib/services/clips.service'
+import { safetyService } from '@/lib/services/safety.service'
+import { jobsService } from '@/lib/services/jobs.service'
+import {
+  websocketService,
+  type JobDoneEvent,
+  type SafetyResultEvent
+} from '@/lib/services/websocket.service'
+
+// Store
+import {
+  selectedClipAtom,
+  currentSafetyJobAtom,
+  safetyReportAtom,
+  safetyAnalysisStateAtom,
+  setSafetyJobAction,
+  setSafetyReportAction
+} from '@/lib/store/clip-cutter.store'
 
 interface PublishSettings {
   caption: string
@@ -41,9 +53,20 @@ interface PublishSettings {
 }
 
 export default function SafetyCheck() {
-  // Safety scan state
-  const [isScanning, setIsScanning] = useState(true)
-  const [safetyResult, setSafetyResult] = useState<SafetyResult | null>(null)
+  // Router
+  const router = useRouter()
+
+  // Store state
+  const [selectedClip] = useAtom(selectedClipAtom)
+  const [currentSafetyJob] = useAtom(currentSafetyJobAtom)
+  const [safetyReport] = useAtom(safetyReportAtom)
+  const [safetyAnalysisState] = useAtom(safetyAnalysisStateAtom)
+
+  // Actions
+  const [, setSafetyJobActionFn] = useAtom(setSafetyJobAction)
+  const [, setSafetyReportActionFn] = useAtom(setSafetyReportAction)
+
+  // Local UI state
   const [showDetails, setShowDetails] = useState(false)
 
   // Publish settings
@@ -80,66 +103,140 @@ export default function SafetyCheck() {
   })
 
   const captionRef = useRef<HTMLTextAreaElement>(null)
-  const router = useRouter()
 
-  // Simulate safety scan
+  // Initialize safety analysis when component mounts
   useEffect(() => {
-    const scanTimeout = setTimeout(() => {
-      // Simulate different outcomes for demo
-      const outcomes: SafetyResult[] = [
-        {
-          status: 'safe',
-          confidence: 0.93
-        },
-        {
-          status: 'needs-review',
-          confidence: 0.55,
-          reason: 'Low confidence detection',
-          details:
-            "Our AI detected potential policy concerns but isn't certain. A human reviewer can provide clarity."
-        },
-        {
-          status: 'blocked',
-          confidence: 0.85,
-          policyViolation: 'Adult content detected',
-          flaggedTimestamp: 23.4,
-          details:
-            'Content appears to violate our community guidelines regarding adult material.'
+    if (!selectedClip) {
+      console.warn('⚠️ No clip selected, redirecting to suggestions')
+      router.push('/clip-cutter/suggestions')
+      return
+    }
+
+    startSafetyAnalysis(selectedClip.id)
+  }, [selectedClip, router])
+
+  // WebSocket listeners for safety events
+  useEffect(() => {
+    const unsubscribeJobDone = websocketService.on<JobDoneEvent>(
+      'job.done',
+      (event) => {
+        console.log('📡 Received job.done event:', event)
+
+        // Check if this event is for our current safety job
+        if (currentSafetyJob && event.jobId === currentSafetyJob.id) {
+          if (event.state === 'SUCCEEDED') {
+            // Safety job completed successfully, fetch safety report
+            if (selectedClip) {
+              fetchSafetyReport(selectedClip.id)
+            }
+          } else if (event.state === 'FAILED') {
+            // Safety job failed
+            console.error('Safety analysis failed:', event.error)
+            setShowToast({
+              type: 'error',
+              message: 'Safety analysis failed. Please try again.'
+            })
+          }
         }
-      ]
-
-      // For demo, randomly select an outcome (weighted toward safe)
-      const random = Math.random()
-      let selectedOutcome
-      if (random < 0.7) {
-        selectedOutcome = outcomes[0] // Safe
-      } else if (random < 0.9) {
-        selectedOutcome = outcomes[1] // Needs review
-      } else {
-        selectedOutcome = outcomes[2] // Blocked
       }
+    )
 
-      setSafetyResult(selectedOutcome)
-      setIsScanning(false)
+    const unsubscribeSafetyResult = websocketService.on<SafetyResultEvent>(
+      'safety.result',
+      (event) => {
+        console.log('📡 Received safety.result event:', event)
 
-      // Update checklist
-      setChecklist((prev) => ({
-        ...prev,
-        video: selectedOutcome.status !== 'blocked'
-      }))
-    }, 3000)
+        // Check if this event is for our current clip
+        if (selectedClip && event.clipId === selectedClip.id) {
+          // Convert to safety report format and save to store
+          const report = {
+            id: `report-${selectedClip.id}`,
+            clip_id: selectedClip.id,
+            verdict: event.verdict as 'SAFE' | 'NEEDS_REVIEW' | 'BLOCKED',
+            confidence: event.confidence,
+            created_at: event.timestamp
+          }
 
-    return () => clearTimeout(scanTimeout)
-  }, [])
+          setSafetyReportActionFn(report)
+        }
+      }
+    )
+
+    return () => {
+      unsubscribeJobDone()
+      unsubscribeSafetyResult()
+    }
+  }, [currentSafetyJob, selectedClip, setSafetyReportActionFn])
+
+  // Start safety analysis
+  const startSafetyAnalysis = async (clipId: string) => {
+    try {
+      console.log('🚀 Starting safety analysis for clip:', clipId)
+
+      // Create safety job
+      const { jobId } = await clipsService.createSafetyJob(clipId)
+      console.log('✅ Safety job created:', jobId)
+
+      // Get job details
+      const job = await jobsService.getJobById(jobId)
+      setSafetyJobActionFn(job)
+
+      setShowToast({
+        type: 'info',
+        message: 'Safety analysis started...'
+      })
+
+      // Connect to WebSocket if not connected
+      if (!websocketService.isConnected()) {
+        websocketService.connect()
+      }
+    } catch (error) {
+      console.error('❌ Failed to start safety analysis:', error)
+      setShowToast({
+        type: 'error',
+        message: 'Failed to start safety analysis. Please try again.'
+      })
+    }
+  }
+
+  // Fetch safety report after analysis completes
+  const fetchSafetyReport = async (clipId: string) => {
+    try {
+      console.log('📥 Fetching safety report for clip:', clipId)
+
+      const report = await safetyService.getSafetyReport(clipId)
+      if (report) {
+        console.log('✅ Safety report fetched:', report)
+        setSafetyReportActionFn(report)
+        setShowToast({
+          type: 'success',
+          message: 'Safety analysis completed!'
+        })
+      } else {
+        console.warn('⚠️ No safety report found')
+        setShowToast({
+          type: 'warning',
+          message: 'Safety analysis completed but no report found.'
+        })
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch safety report:', error)
+      setShowToast({
+        type: 'error',
+        message: 'Failed to load safety report. Please refresh the page.'
+      })
+    }
+  }
 
   // Update checklist when settings change
   useEffect(() => {
     setChecklist((prev) => ({
       ...prev,
       caption: publishSettings.caption.trim().length > 0,
-      schedule: publishSettings.scheduledTime !== ''
+      schedule: publishSettings.scheduledTime !== '',
+      video: safetyReport ? safetyReport.verdict !== 'BLOCKED' : false
     }))
-  }, [publishSettings.caption, publishSettings.scheduledTime])
+  }, [publishSettings.caption, publishSettings.scheduledTime, safetyReport])
 
   // Handle caption edit
   const handleCaptionEdit = useCallback(() => {
@@ -217,15 +314,15 @@ export default function SafetyCheck() {
 
   // Handle publish
   const handlePublish = useCallback(() => {
-    if (!safetyResult || safetyResult.status === 'blocked') return
+    if (!safetyReport || safetyReport.verdict === 'BLOCKED') return
 
-    if (safetyResult.status === 'needs-review') {
+    if (safetyReport.verdict === 'NEEDS_REVIEW') {
       setShowReviewModal(true)
       return
     }
 
     setShowPublishModal(true)
-  }, [safetyResult])
+  }, [safetyReport])
 
   const confirmPublish = useCallback(() => {
     setShowPublishModal(false)
@@ -233,7 +330,7 @@ export default function SafetyCheck() {
 
     // Simulate upload progress for each platform
     const activePlatforms = Object.entries(publishSettings.platforms)
-      .filter(([_, active]) => active)
+      .filter(([, active]) => active)
       .map(([platform]) => platform)
 
     activePlatforms.forEach((platform) => {
@@ -318,7 +415,7 @@ export default function SafetyCheck() {
 
   // Get safety banner props
   const getSafetyBannerProps = () => {
-    if (isScanning) {
+    if (safetyAnalysisState === 'analyzing') {
       return {
         color: 'bg-gray-900/50 text-gray-300',
         icon: <Loader2 size={20} className="animate-spin" />,
@@ -327,30 +424,32 @@ export default function SafetyCheck() {
       }
     }
 
-    if (!safetyResult) return null
+    if (!safetyReport) return null
 
-    switch (safetyResult.status) {
-      case 'safe':
+    switch (safetyReport.verdict) {
+      case 'SAFE':
         return {
           color: 'bg-green-900/30 text-green-400 border border-green-500/30',
           icon: <Check size={20} />,
           title: 'All good — compliant with policy',
-          subtitle: `Confidence: ${(safetyResult.confidence * 100).toFixed(0)}%`
+          subtitle: `Confidence: ${(safetyReport.confidence * 100).toFixed(0)}%`
         }
-      case 'needs-review':
+      case 'NEEDS_REVIEW':
         return {
           color: 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30',
           icon: <AlertTriangle size={20} />,
-          title: `Low confidence (${safetyResult.confidence.toFixed(
+          title: `Low confidence (${safetyReport.confidence.toFixed(
             2
           )}) — manual review recommended`,
           subtitle: "Our AI isn't certain about this content"
         }
-      case 'blocked':
+      case 'BLOCKED':
         return {
           color: 'bg-red-900/30 text-red-400 border border-red-500/30',
           icon: <X size={20} />,
-          title: `Policy violation: ${safetyResult.policyViolation}`,
+          title: `Policy violation: ${
+            safetyReport.policy_category || 'Content violation'
+          }`,
           subtitle: 'This content cannot be published in its current form'
         }
       default:
@@ -360,12 +459,12 @@ export default function SafetyCheck() {
 
   const safetyBannerProps = getSafetyBannerProps()
   const canPublish =
-    safetyResult?.status === 'safe' &&
+    safetyReport?.verdict === 'SAFE' &&
     checklist.video &&
     checklist.caption &&
     checklist.schedule
-  const needsReview = safetyResult?.status === 'needs-review'
-  const isBlocked = safetyResult?.status === 'blocked'
+  const needsReview = safetyReport?.verdict === 'NEEDS_REVIEW'
+  const isBlocked = safetyReport?.verdict === 'BLOCKED'
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
@@ -433,8 +532,8 @@ export default function SafetyCheck() {
             )}
 
             {/* Details accordion */}
-            {safetyResult &&
-              (safetyResult.details || safetyResult.flaggedTimestamp) && (
+            {safetyReport &&
+              (safetyReport.details || safetyReport.policy_category) && (
                 <div className="bg-gray-900 rounded-lg">
                   <button
                     onClick={() => setShowDetails(!showDetails)}
@@ -453,31 +552,28 @@ export default function SafetyCheck() {
 
                   {showDetails && (
                     <div className="px-4 pb-4 space-y-3">
-                      {safetyResult.details && (
+                      {safetyReport.details && (
                         <div>
                           <h4 className="text-sm font-medium text-gray-400 mb-2">
                             Reason
                           </h4>
-                          <p className="text-sm">{safetyResult.details}</p>
+                          <p className="text-sm">
+                            {typeof safetyReport.details === 'string'
+                              ? safetyReport.details
+                              : JSON.stringify(safetyReport.details)}
+                          </p>
                         </div>
                       )}
 
-                      {safetyResult.flaggedTimestamp && (
+                      {safetyReport.policy_category && (
                         <div>
                           <h4 className="text-sm font-medium text-gray-400 mb-2">
-                            Flagged content
+                            Policy Category
                           </h4>
                           <div className="flex items-center gap-2 text-sm">
                             <span>
-                              Timestamp: {safetyResult.flaggedTimestamp}s
+                              Category: {safetyReport.policy_category}
                             </span>
-                            <div className="w-16 h-9 bg-gray-800 rounded overflow-hidden">
-                              <img
-                                src="/placeholder.svg?height=36&width=64"
-                                alt="Flagged frame"
-                                className="w-full h-full object-cover blur-sm"
-                              />
-                            </div>
                           </div>
                         </div>
                       )}
@@ -625,9 +721,9 @@ export default function SafetyCheck() {
                   >
                     Video scan {checklist.video ? 'passed' : 'pending'}
                   </span>
-                  {checklist.video && safetyResult && (
+                  {checklist.video && safetyReport && (
                     <span className="text-xs text-gray-400">
-                      (Score: {(safetyResult.confidence * 100).toFixed(0)}%)
+                      (Score: {(safetyReport.confidence * 100).toFixed(0)}%)
                     </span>
                   )}
                 </div>
