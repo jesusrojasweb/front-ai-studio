@@ -238,8 +238,7 @@ export default function ClipCutter() {
         firstVideoData?.id
       )
 
-      // In a real implementation, you might want to pass the video ID via query params
-      // or store it in a global state management solution
+      // Navigate to suggestions with the videoId as query param
       router.push(`/clip-cutter/suggestions?videoId=${firstVideoData?.id}`)
     } else {
       router.push('/clip-cutter/suggestions')
