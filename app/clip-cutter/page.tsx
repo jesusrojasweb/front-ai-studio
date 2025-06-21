@@ -256,7 +256,7 @@ export default function ClipCutter() {
       {/* Header */}
       <header className="h-16 border-b border-gray-800 px-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">1 / 4 · Upload your footage</h1>
+          <h1 className="text-xl font-bold">1 / 3 · Upload your footage</h1>
           <div className="text-sm text-gray-400">
             <span className="text-white">Plan</span> › Upload › Edit › Publish
           </div>

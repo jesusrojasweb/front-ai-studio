@@ -471,7 +471,7 @@ export default function SafetyCheck() {
       {/* Header */}
       <header className="h-16 border-b border-gray-800 px-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">4 / 4 · Finalize & publish</h1>
+          <h1 className="text-xl font-bold">3 / 3 · Finalize & publish</h1>
           <p className="text-sm text-gray-400">
             Last check before your audience sees it
           </p>

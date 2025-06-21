@@ -381,7 +381,7 @@ export default function ClipSuggestions() {
 
   const handleNext = useCallback(() => {
     if (selectedClip) {
-      router.push('/clip-cutter/fine-tune')
+      router.push('/clip-cutter/safety-check')
     }
   }, [selectedClip, router])
 
@@ -435,7 +435,7 @@ export default function ClipSuggestions() {
         {/* Header */}
         <header className="h-16 border-b border-gray-800 px-6 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">2 / 4 · Choose your clip</h1>
+            <h1 className="text-xl font-bold">2 / 3 · Choose your clip</h1>
             <p className="text-sm text-gray-400">Analyzing your video...</p>
           </div>
         </header>
