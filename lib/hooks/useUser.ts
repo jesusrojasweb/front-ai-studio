@@ -4,7 +4,7 @@
 'use client'
 
 import { useAtom } from 'jotai'
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import {
   userAtom,
   userIdAtom,
@@ -32,8 +32,8 @@ const transformUserData = (user: User): UserData => ({
 })
 
 export const useUser = () => {
-  const [user, setUser] = useAtom(userAtom)
-  const [userId, setUserId] = useAtom(userIdAtom)
+  const [user] = useAtom(userAtom)
+  const [userId] = useAtom(userIdAtom)
   const [loading, setLoading] = useAtom(userLoadingAtom)
   const [error, setError] = useAtom(userErrorAtom)
   const [isAuthenticated] = useAtom(isAuthenticatedAtom)

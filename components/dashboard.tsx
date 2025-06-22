@@ -1,10 +1,12 @@
-import { ChevronDown, Target } from "lucide-react"
+import { ChevronDown, Target } from 'lucide-react'
 
 export default function Dashboard() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center font-bold">JR</div>
+        <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center font-bold">
+          JR
+        </div>
         <h2 className="text-2xl font-bold">WELCOME, JESUS ROJAS</h2>
       </div>
 
@@ -26,7 +28,7 @@ export default function Dashboard() {
           <div className="w-full bg-[#6a3d7c] rounded-full h-2">
             <div
               className="bg-green-500 h-2 rounded-full transition-all duration-300 ease-in-out"
-              style={{ width: "1%" }}
+              style={{ width: '1%' }}
             ></div>
           </div>
         </div>
@@ -37,11 +39,13 @@ export default function Dashboard() {
           <h3 className="text-xl font-bold">START EARNING IN 5 STEPS</h3>
           <ChevronDown size={24} />
         </div>
-        <p className="text-gray-400">You've completed 0 out of 5 steps</p>
+        <p className="text-gray-400">You&apos;ve completed 0 out of 5 steps</p>
       </div>
 
       <div className="mb-6">
-        <h3 className="text-xl font-bold mb-4">WHAT'S HAPPENING IN YOUR BUSINESS</h3>
+        <h3 className="text-xl font-bold mb-4">
+          WHAT&apos;S HAPPENING IN YOUR BUSINESS
+        </h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] rounded-lg p-6">
             <h4 className="text-gray-400 mb-2">Payouts</h4>

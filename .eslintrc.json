@@ -1,0 +1,21 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    // Critical errors that should fail build
+    "react/no-unescaped-entities": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    
+    // Warnings that shouldn't fail build
+    "react-hooks/exhaustive-deps": "warn",
+    "@next/next/no-img-element": "warn",
+    
+    // Allow unused variables with underscore prefix
+    "@typescript-eslint/no-unused-vars": [
+      "error", 
+      { 
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_" 
+      }
+    ]
+  }
+} 
